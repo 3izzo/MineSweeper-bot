@@ -1,0 +1,96 @@
+<script>
+
+    console.log(solve([
+        [1, 2, 2, 1],
+        [1, -1, -1, 1],
+        [1, 2, 2, 1]]));
+
+    function solve(input) {
+        var ySize = input.length;
+        var xSize = input[0].length;
+
+        let values = defineEmpty2dArray(ySize);
+        let dividers = defineEmpty2dArray(ySize);
+
+       
+            for (let y = 0; y < ySize; y++) {
+                const element = input[y];
+                for (let x = 0; x < xSize; x++) {
+
+                const squareValue = element[x];
+
+                if (squareValue == "f")
+                    continue;
+
+                //does not count zeros or mines.
+                //if the loop encounters a mine the square value is --
+                let neighborsCount = 0;
+
+                for (let i = x - 1; i <= x + 1; i++) {
+                    for (let j = y - 1; j <= y + 1; j++) {
+                        if ((i == x && j == y) || (i < 0 || i >= xSize || j < 0 || j >= ySize))
+                            continue;
+                        if (input[y][x] == "f") {
+                            squareValue--;
+                        } else if (input[y][x] == 0 || input[y][x] == -1) {
+                            continue;
+                        } else {
+                            neighborsCount++;
+                        }
+                    }
+                }
+
+                for (let i = x - 1; i <= x + 1; i++) {
+                    for (let j = y - 1; j <= y + 1; j++) {
+                        if ((i == x && j == y) || (i < 0 || i >= xSize || j < 0 || j >= ySize))
+                            continue;
+                        if (input[y][x] == "f") {
+                            squareValue--;
+                        } else if (input[y][x] == 0) {
+                            continue;
+                        } else {
+                            if (values[j][i] == undefined) {
+                                values[j][i] = 0;
+                                dividers[j][i] = 0;
+                            }
+                            values[j][i] += squareValue;
+                            dividers[j][i] += neighborsCount;
+                        }
+                    }
+                }
+            }
+        }
+
+        let percents = defineEmpty2dArray(ySize);
+        for (let x = 0; x < xSize; x++) {
+            for (let y = 0; y < ySize; y++) {
+                percents[y][x] = values[y][x] / dividers[y][x];
+            }
+        }
+
+        let max = 0;
+        percents.forEach(row => {
+            row.forEach(cell => {
+                if (cell > max)
+                    max = cell;
+            });
+        });
+
+        let result = [];
+        for (let x = 0; x < xSize; x++) {
+            for (let y = 0; y < ySize; y++) {
+                if (percents[y][x] == max) {
+                    result[result.length] = { x: x, y: y };
+                }
+            }
+        }
+        return result;
+    }
+    function defineEmpty2dArray(ySize) {
+        let result = [];
+        for (let i = 0; i < ySize; i++) {
+            result[i] = [];
+        }
+        return result;
+    }
+</script>
