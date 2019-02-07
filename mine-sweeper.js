@@ -48,16 +48,15 @@ const puppeteer = require('puppeteer');
         let row = notMines[0].x;
         let col = getLetter(notMines[0].y);
         await page.click('#'+col+row);
+        console.log('#'+col+row+' is clicked')
       }
 
       await page.evaluate(() => {
         document.querySelector('#gdpr-agree').click()
       });
 
-      await page.waitFor(30000);
+      await page.waitFor(1000);
     }
-
-
 
     // console.log(solve(allBoxes));
 
