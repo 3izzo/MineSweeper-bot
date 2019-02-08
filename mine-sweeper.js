@@ -26,23 +26,66 @@ const puppeteer = require('puppeteer');
   await page.click('#C10');
 
   let cycles = 0;
-
+  mainloop:
   while (true) {
-    let allBoxes = [];
+    // let allBoxes = [];
     let count = 0;
     console.time('getting info');
 
-    for (let i = 0; i < 16; i++) {
-      let currentRow = [];
-      for (let j = 0; j < 31; j++) {
-        let currentCellClass = await page.evaluate((x) => {
-          return document.querySelectorAll('td')[x].className;
-        }, count)
-        // console.log(getValue(currentCellClass) + " " + count);
-        currentRow.push(getValue(currentCellClass));
-        count++;
+    // let currentRow = [];
+    // for (let j = 0; j < 31; j++) {
+    //   let currentCellClass = await page.evaluate((x) => {
+    //     let qrs = document.querySelectorAll('td')[x];
+    //     return qrs.className;
+    //   }, count)
+    //   // console.log(getValue(currentCellClass) + " " + count);
+    //   currentRow.push(getValue(currentCellClass));
+    //   count++;
+    // }
+
+    let allBoxes = await page.evaluate(function () {
+      let result = [];
+      let getValueFunc = function getValue(className) {
+        switch (className) {
+          case 'closed':
+            return -1;
+          case 'blank':
+            return 0;
+          case 'flag':
+            return 'f';
+          case 'nr nr1':
+            return 1;
+          case 'nr nr2':
+            return 2;
+          case 'nr nr3':
+            return 3;
+          case 'nr nr4':
+            return 4;
+          case 'nr nr5':
+            return 5;
+          case 'nr nr6':
+            return 6;
+        }
+      };
+      for (let i = 0; i < 16; i++) {
+        let row = []
+        let qrs = document.querySelectorAll('td');
+        for (let j = 0; j < 31; j++) {
+          row[j] = getValueFunc(qrs[i * 31 + j].className);
+
+        }
+        if (row.includes(undefined) || row.includes(null)) {
+          return null;
+        }
+        result.push(row);
       }
-      allBoxes.push(currentRow);
+      return result;
+    });
+    if (allBoxes == null) {
+      // await page.click('#expert');
+      // console.log("clicked expert");
+      await page.waitFor(500);
+      continue mainloop;
     }
     console.timeEnd('getting info');
 
@@ -51,37 +94,37 @@ const puppeteer = require('puppeteer');
 
     console.timeEnd('solution');
 
-    let mines = solution.mines;
+    let sureMines = solution.sureMines;
     let notMines = solution.notMines;
 
     console.time('clicking');
 
-    if (mines.length == 0) {
+    if (notMines.length == 0 && sureMines.length == 0) {
       await page.click('#' + getRandomLetter() + '10');
     } else {
       // console.log(" whoooooo found an asnwer");
       // console.log(mines);
-      if (notMines.length == 0) {
-        let row = mines[0].x + 1;
-        let col = getLetter(mines[0].y);
-        await page.click('#' + col + row, { button: "right" });
-        // console.log('#' + col + row + ' is clicked')
-      } else {
+      if (notMines.length > 0) {
         for (let i = 0; i < notMines.length; i++) {
           const notMine = notMines[i];
-
           let row = notMine.x + 1;
           let col = getLetter(notMine.y);
           await page.click('#' + col + row);
-          // console.log('#' + col + row + ' is clicked');
         }
+        // console.log('#' + col + row + ' is clicked')
+      } else {
+        let row = sureMines[0].x + 1;
+        let col = getLetter(sureMines[0].y);
+        await page.click('#' + col + row, { button: "right" });
+        // console.log('#' + col + row + ' is clicked');
+
 
       }
     }
     console.timeEnd('clicking');
 
 
-    // await page.waitFor(50);
+    await page.waitFor(50);
   }
 
   // console.log(solve(allBoxes));
@@ -91,28 +134,28 @@ const puppeteer = require('puppeteer');
   // await browser.close();
 })();
 
-function getValue(className) {
-  switch (className) {
-    case 'closed':
-      return -1;
-    case 'blank':
-      return 0;
-    case 'flag':
-      return 'f';
-    case 'nr nr1':
-      return 1;
-    case 'nr nr2':
-      return 2;
-    case 'nr nr3':
-      return 3;
-    case 'nr nr4':
-      return 4;
-    case 'nr nr5':
-      return 5;
-    case 'nr nr6':
-      return 6;
-  }
-}
+// function getValue(className) {
+//   switch (className) {
+//     case 'closed':
+//       return -1;
+//     case 'blank':
+//       return 0;
+//     case 'flag':
+//       return 'f';
+//     case 'nr nr1':
+//       return 1;
+//     case 'nr nr2':
+//       return 2;
+//     case 'nr nr3':
+//       return 3;
+//     case 'nr nr4':
+//       return 4;
+//     case 'nr nr5':
+//       return 5;
+//     case 'nr nr6':
+//       return 6;
+//   }
+// }
 
 function getLetter(number) {
   let letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P'];
@@ -273,7 +316,8 @@ function solve(input) {
     });
   });
   // console.table(percents);
-  let max = 0.000000000001;
+  // let max = 0.000000000001;
+  let max = 0.5;
   percents.forEach(row => {
     row.forEach(cell => {
       if (cell > max && cell != 0)
@@ -296,7 +340,7 @@ function solve(input) {
       }
     }
   }
-  return { mines: mines, notMines: notMines };
+  return { sureMines: mines, notMines: notMines };
 }
 
 function defineEmpty2dArray(ySize) {
