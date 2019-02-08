@@ -7,8 +7,14 @@ const puppeteer = require('puppeteer');
     await page.goto('https://cardgames.io/minesweeper/');
     // await page.goto('https://minesweeper.online/en/game/148953674');
 
-    await page.click('#expert');
+    await page.waitFor(5000);
 
+    await page.click('#gdpr-agree');
+    console.log("clicked gdpr");
+    await page.waitFor(500);
+    await page.click('#expert');
+    console.log("clicked expert");
+    await page.waitFor(500);
     await page.setCacheEnabled(true);
 
     let boxes = await page.evaluate(() => {
@@ -45,24 +51,20 @@ const puppeteer = require('puppeteer');
       } else {
         console.log(" whoooooo found an asnwer");
         console.log(notMines);
-        let row = notMines[0].x;
+        let row = notMines[0].x + 1;
         let col = getLetter(notMines[0].y);
         await page.click('#'+col+row);
         console.log('#'+col+row+' is clicked')
       }
-
-      await page.evaluate(() => {
-        document.querySelector('#gdpr-agree').click()
-      });
 
       await page.waitFor(1000);
     }
 
     // console.log(solve(allBoxes));
 
-    await page.waitFor(1000000);
-    await page.close();
-    await browser.close();
+    // await page.waitFor(1000000);
+    // await page.close();
+    // await browser.close();
 })();
 
 function getValue(className) {
@@ -120,25 +122,24 @@ function solve(input) {
                       continue;
                   if (input[y][x] == "f") {
                       squareValue--;
-                  } else if (input[y][x] == 0 || input[y][x] == -1) {
-                      continue;
-                  } else {
+                  } else if (input[y][x] == -1) {
                       neighborsCount++;
                   }
               }
           }
+
+          if(squareValue <= 0)
+            continue;
           for (let i = x - 1; i <= x + 1; i++) {
               for (let j = y - 1; j <= y + 1; j++) {
                   if ((i == x && j == y) || (i < 0 || i >= xSize || j < 0 || j >= ySize))
                       continue;
-                  if (input[y][x] == "f") {
-                      squareValue--;
-                  } else if (input[y][x] == 0) {
+                  if (input[j][i] >= 0) {
                       continue;
                   } else {
                       if (values[j][i] == undefined) {
                           values[j][i] = 0;
-                          dividers[j][i] = 0;
+                          dividers[j][i] = 1;
                       }
                       values[j][i] += squareValue;
                       dividers[j][i] += neighborsCount;
@@ -147,9 +148,17 @@ function solve(input) {
           }
       }
   }
+
+  // console.table(values);
+  // console.table(dividers);
+  // console.log("----------------------------------------")
+
   let percents = defineEmpty2dArray(ySize);
   for (let x = 0; x < xSize; x++) {
       for (let y = 0; y < ySize; y++) {
+          if(dividers[y][x] == undefined || dividers[y][x] ==0)
+            percents[y][x] = 0;
+            else
           percents[y][x] = values[y][x] / dividers[y][x];
       }
   }
@@ -160,6 +169,8 @@ function solve(input) {
               max = cell;
       });
   });
+  console.table(input);
+  console.table(percents);
   let result = [];
   for (let x = 0; x < xSize; x++) {
       for (let y = 0; y < ySize; y++) {
