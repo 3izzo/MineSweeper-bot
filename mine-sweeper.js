@@ -100,17 +100,17 @@ const puppeteer = require('puppeteer');
     // console.time('clicking');
 
     if (sureNotMines.length == 0 && sureMines.length == 0) {
-      console.log("luck");
-      let notMines = solution.notMines;
-      if (notMines.length > 0) {
-        let row = notMines[0].x + 1;
-        let col = getLetter(notMines[0].y);
-        await page.click('#' + col + row);
-        // console.log('#' + col + row + ' is clicked');
-      } else {
-        await page.click('#' + getRandomLetter() + '10');
-        await page.waitFor(500);
-      }
+      // console.log("luck");
+      // let notMines = solution.notMines;
+      // if (notMines.length > 0) {
+      //   let row = notMines[0].x + 1;
+      //   let col = getLetter(notMines[0].y);
+      //   await page.click('#' + col + row);
+      //   // console.log('#' + col + row + ' is clicked');
+      // } else {
+      //   await page.click('#' + getRandomLetter() + '10');
+      //   await page.waitFor(500);
+      // }
     } else {
       // console.log(" whoooooo found an asnwer");
       // console.log(mines);
@@ -120,7 +120,7 @@ const puppeteer = require('puppeteer');
           let row = notMine.x + 1;
           let col = getLetter(notMine.y);
           await page.click('#' + col + row);
-          console.log('#' + col + row + ' is clicked')
+          // console.log('#' + col + row + ' is clicked')
         }
       }
       if (sureMines.length > 0) {
@@ -128,7 +128,7 @@ const puppeteer = require('puppeteer');
           let row = sureMines[i].x + 1;
           let col = getLetter(sureMines[i].y);
           await page.click('#' + col + row, { button: "right" });
-          console.log('#' + col + row + ' is clicked');
+          // console.log('#' + col + row + ' is clicked');
         }
       }
     }
@@ -145,37 +145,16 @@ const puppeteer = require('puppeteer');
   // await browser.close();
 })();
 
-// function getValue(className) {
-//   switch (className) {
-//     case 'closed':
-//       return -1;
-//     case 'blank':
-//       return 0;
-//     case 'flag':
-//       return 'f';
-//     case 'nr nr1':
-//       return 1;
-//     case 'nr nr2':
-//       return 2;
-//     case 'nr nr3':
-//       return 3;
-//     case 'nr nr4':
-//       return 4;
-//     case 'nr nr5':
-//       return 5;
-//     case 'nr nr6':
-//       return 6;
-//   }
-// }
+
 
 function getLetter(number) {
-  let letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P'];
+  let letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
   return letters[number];
 }
 
 function getRandomLetter() {
-  let letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P'];
-  let randomNumber = Math.floor(Math.random() * 10);
+  let letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+  let randomNumber = Math.floor(Math.random() * 15);
   return letters[randomNumber];
 }
 
@@ -183,6 +162,79 @@ function getRandomLetter() {
 
 function solve(input) {
 
+  let knownCells = getKnownCells(input);
+
+  let notMines = [];
+  let sureMines = [];
+  let sureNotMines = [];
+  let constrainedCells = defineEmpty2dArray(input.length);
+  let percents = defineEmpty2dArray(input.length);
+
+
+  for (let y = 0; y < knownCells.length; y++) {
+    const row = knownCells[y];
+    if (row == undefined)
+      continue;
+    for (let x = 0; x < row.length; x++) {
+      const cell = row[x];
+      if (cell == undefined)
+        continue;
+      cell.neighbors.forEach(neighbor => {
+        if (cell.value == 0) {
+          sureNotMines[sureNotMines.length] = { y: neighbor.y, x: neighbor.x };
+          return;
+        }
+        if (percents[neighbor.y][neighbor.x] == undefined) {
+          percents[neighbor.y][neighbor.x] = 0;
+          if (constrainedCells[neighbor.y][neighbor.x] == undefined)
+            constrainedCells[neighbor.y][neighbor.x] = { constainedBy: [{ value: cell.value, x: x, y: y }], x: neighbor.x, y: neighbor.y };
+          else
+            constrainedCells[neighbor.y][neighbor.x].push({ constainedBy: [{ value: cell.value, x: x, y: y }], x: neighbor.x, y: neighbor.y });
+        }
+        percents[neighbor.y][neighbor.x] += (1 - percents[neighbor.y][neighbor.x]) * (cell.value / cell.possibleNeighborMines);
+      });
+    }
+  }
+
+
+  let islands = getIslands(constrainedCells);
+  // console.table(islands);
+  let min = 1;
+  // let max = 0.6;
+  percents.forEach(row => {
+    row.forEach(cell => {
+      if (cell < min && cell != 0)
+        min = cell;
+    });
+  });
+  // console.table(percents);
+  // console.table(input);
+
+
+
+
+  for (let x = 0; x < input[0].length; x++) {
+    for (let y = 0; y < input.length; y++) {
+      if (percents[y][x] == 0) {
+        sureNotMines[sureNotMines.length] = { x: x, y: y };
+      } else if (percents[y][x] == 1)
+        sureMines.push({ x: x, y: y });
+      else if (percents[y][x] == min) {
+        notMines[notMines.length] = { x: x, y: y };
+      }
+    }
+  }
+  return { sureMines: sureMines, notMines: notMines, sureNotMines: sureNotMines };
+}
+
+function defineEmpty2dArray(ySize) {
+  let result = [];
+  for (let i = 0; i < ySize; i++) {
+    result[i] = [];
+  }
+  return result;
+}
+function getKnownCells(input) {
   let knownCells = defineEmpty2dArray(input.length);
 
   for (let y = 0; y < input.length; y++) {
@@ -216,58 +268,60 @@ function solve(input) {
       }
     }
   }
+  return knownCells;
+}
 
-  let notMines = [];
-  let sureMines = [];
-  let sureNotMines = [];
+function getIslands(constrainedCells) {
 
-  let percents = defineEmpty2dArray(input.length);
-  knownCells.forEach(row => {
-    row.forEach(cell => {
-      cell.neighbors.forEach(neighbor => {
-        if (cell.value == 0) {
-          sureNotMines[sureNotMines.length] = { y: neighbor.y, x: neighbor.x };
-          return;
+  let cells = constrainedCells.map(function (arr) {
+    return arr.slice();
+  });
+  let islands = [];
+  for (let y = 0; y < cells.length; y++) {
+    const row = cells[y];
+    for (let x = 0; x < row.length; x++) {
+      const cell = row[x];
+      if (cell != undefined) {
+        let indexs = getIslandIndexs(islands, x, y);
+        if (indexs.length == 0) {
+          islands.push([cell]);
+        } else {
+          {
+            while (indexs.length > 1) {
+              //having more than 1 index => the cell is shared between more than one cell => those islands must ber merged
+
+              islands[indexs[indexs.length - 1]].forEach(island => {
+                islands[indexs[0]].push(island);
+              });
+              islands.splice(indexs[indexs.length - 1], 1);
+              indexs.pop();
+            }
+            if (islands[indexs[0]] == undefined) {
+              islands[indexs[0]] = [cell];
+            } else {
+              islands[indexs[0]].push(cell);
+            }
+          }
         }
-        if (percents[neighbor.y][neighbor.x] == undefined)
-          percents[neighbor.y][neighbor.x] = 0;
-        percents[neighbor.y][neighbor.x] += (1 - percents[neighbor.y][neighbor.x]) * (cell.value / cell.possibleNeighborMines);
-      });
-    });
-  });
-  // console.table(percents);
-  let min = 1;
-  // let max = 0.6;
-  percents.forEach(row => {
-    row.forEach(cell => {
-      if (cell < min && cell != 0)
-        min = cell;
-    });
-  });
-  // console.table(percents);
-  // console.table(input);
-
-
-
-
-  for (let x = 0; x < input[0].length; x++) {
-    for (let y = 0; y < input.length; y++) {
-      if (percents[y][x] == 0) {
-        sureNotMines[sureNotMines.length] = { x: x, y: y };
-      } else if (percents[y][x] == 1)
-        sureMines.push({ x: x, y: y });
-      else if (percents[y][x] == min) {
-        notMines[notMines.length] = { x: x, y: y };
       }
     }
   }
-  return { sureMines: sureMines, notMines: notMines, sureNotMines: sureNotMines };
+  return islands;
 }
-
-function defineEmpty2dArray(ySize) {
-  let result = [];
-  for (let i = 0; i < ySize; i++) {
-    result[i] = [];
+function doesContainNeighborCell(island, x, y) {
+  for (let index = 0; index < island.length; index++) {
+    const cell = island[index];
+    if ((cell.x == x && Math.abs(cell.y - y) == 1) || (cell.y == y && Math.abs(cell.x - x) == 1))
+      return true;
+  }
+  return false;
+}
+function getIslandIndexs(islands, x, y) {
+  result = [];
+  for (let index = 0; index < islands.length; index++) {
+    let island = islands[index];
+    if (doesContainNeighborCell(island, x, y))
+      result.push(index);
   }
   return result;
 }
