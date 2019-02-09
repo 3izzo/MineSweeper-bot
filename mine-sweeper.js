@@ -27,7 +27,7 @@ const puppeteer = require('puppeteer');
 
       for (let i = 0; i < 16; i++) {
         let currentRow = [];
-        for (let j = 0; j < 30; j++) {
+        for (let j = 0; j < 31; j++) {
           let currentCellClass = await page.evaluate((x) => {
             return document.querySelectorAll('td')[x].className;
           }, count)
@@ -38,7 +38,10 @@ const puppeteer = require('puppeteer');
         allBoxes.push(currentRow);
       }
 
+      // console.table(allBoxes);
+
       let notMines = solve(allBoxes);
+      console.table(transformToArrayOfObjects(allBoxes));
 
       if (notMines.length == 0) {
         await page.click('#'+getRandomLetter()+'10');
@@ -55,7 +58,7 @@ const puppeteer = require('puppeteer');
         document.querySelector('#gdpr-agree').click()
       });
 
-      await page.waitFor(1000);
+      await page.waitFor(3000);
     }
 
     // console.log(solve(allBoxes));
@@ -85,6 +88,8 @@ function getValue(className) {
       return 5;
     case 'nr nr6':
       return 6;
+    case  'undefined':
+      return 'u';
   }
 }
 
@@ -178,4 +183,57 @@ function defineEmpty2dArray(ySize) {
       result[i] = [];
   }
   return result;
+}
+
+function solve2(input) {
+  let ySize = input.length;
+  let xSize = input[0].length;
+  let count  = 0;
+  let arrayOfObjects = transformToArrayOfObjects(input);
+
+  for (let y = 0; y < ySize; y++) {
+    for (let x = 0; x < xSize; x++) {
+      getSurroundingBoxes(y, x);
+    }
+  }
+  console.log(count);
+}
+
+function transformToArrayOfObjects(input) {
+  let ySize = input.length;
+  let xSize = input[0].length;
+  let result = [];
+  for (let col = 0; col < ySize; col++) {
+    rowResult = [];
+    for (let row = 0; row <  xSize; row++) {
+      rowResult.push({y: col, x: row});
+    }
+    result.push(rowResult);
+  }
+  return result;
+}
+
+function getSurroundingBoxes(y, x, arrayOfObjects) {
+  surroundingBoxes = [];
+  // top 
+  if (x-1 !== -1) 
+    surroundingBoxes.push({x: x - 1, y: y});
+  // top left
+  if (y-1 !== -1 && x-1 !== -1) 
+    surroundingBoxes.push({x: x-1, y: y-1});
+  // top right 
+  if (x-1 !== -1 && y+1 !== 31) 
+    surroundingBoxes.push({x: x-1, y: y+1});
+  // left
+  if (y-1 !== -1) 
+    surroundingBoxes.push({x: x, y: y-1});
+  // right  
+  if (y+1 != 31 ) 
+    surroundingBoxes.push({x: x, y: y+1});
+  // bottom left
+  if (y-1 !== -1 && x+1 !== 16)
+    surroundingBoxes.push({x: x+1, y: y-1});
+  // bottom right
+  if (y+1 !== 31 && x+1 != 16) 
+    surroundingBoxes.push({x: x+1, y: y+1});
 }
