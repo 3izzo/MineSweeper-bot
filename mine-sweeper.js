@@ -82,8 +82,8 @@ const puppeteer = require('puppeteer');
       return result;
     });
     if (allBoxes == null) {
-      // await page.click('#expert');
-      // console.log("clicked expert");
+      await page.click('#expert');
+      console.log("clicked expert");
       await page.waitFor(500);
       continue mainloop;
     }
@@ -100,17 +100,17 @@ const puppeteer = require('puppeteer');
     // console.time('clicking');
 
     if (sureNotMines.length == 0 && sureMines.length == 0) {
-      // console.log("luck");
-      // let notMines = solution.notMines;
-      // if (notMines.length > 0) {
-      //   let row = notMines[0].x + 1;
-      //   let col = getLetter(notMines[0].y);
-      //   await page.click('#' + col + row);
-      //   // console.log('#' + col + row + ' is clicked');
-      // } else {
-      //   await page.click('#' + getRandomLetter() + '10');
-      //   await page.waitFor(500);
-      // }
+      console.log("luck");
+      let notMines = solution.notMines;
+      if (notMines.length > 0) {
+        let row = notMines[0].x + 1;
+        let col = getLetter(notMines[0].y);
+        await page.click('#' + col + row);
+        // console.log('#' + col + row + ' is clicked');
+      } else {
+        await page.click('#' + getRandomLetter() + '10');
+        await page.waitFor(500);
+      }
     } else {
       // console.log(" whoooooo found an asnwer");
       // console.log(mines);
@@ -197,7 +197,7 @@ function solve(input) {
   }
 
 
-  let islands = getIslands(constrainedCells);
+
   // console.table(islands);
   let min = 1;
   // let max = 0.6;
@@ -224,6 +224,42 @@ function solve(input) {
       }
     }
   }
+
+  if (sureMines.length == 0 && sureNotMines == 0) {
+    let islands = getIslands(constrainedCells);
+
+    for (let i = 0; i < islands.length; i++) {
+
+      let island = islands[i];
+      if (island.length > 24) {
+        let spliced = island.splice(24);
+        console.log(spliced)
+        islands.push(spliced);
+      }
+      if (sureMines.length != 0 || sureNotMines.length != 0)
+        break;
+      // console.log("brute forcing")
+      let brutForceResult = BRUTEFOOOOORCE(island);
+      // console.log("brute forcing done")
+
+      brutForceResult.sureMines.forEach(sm => {
+        if (() => {
+          sureMines.forEach(sm2 => {
+            if (sm2.x == sm.x & sm2.y == sm.y)
+              return false;
+          });
+          return true;
+        })
+          sureMines.push(sm);
+      });
+
+      brutForceResult.sureNotMines.forEach(snm => {
+        sureNotMines.push(snm);
+      });
+
+    }
+  }
+
   return { sureMines: sureMines, notMines: notMines, sureNotMines: sureNotMines };
 }
 
@@ -324,4 +360,100 @@ function getIslandIndexs(islands, x, y) {
       result.push(index);
   }
   return result;
+}
+function BRUTEFOOOOORCE(island) {
+  let mines = [];
+  let minesSolution = [];
+  let notMinesSolution = [];
+  let constraints = defineEmpty2dArray(16);
+  island.forEach(cell => {
+    cell.constainedBy.forEach(constrain => {
+      constraints[constrain.y][constrain.x] = constrain;
+    });
+  });
+  for (let i = 0; i < island.length; i++) {
+    minesSolution[i] = true;
+    notMinesSolution[i] = true;
+    mines[i] = false;
+  }
+  /**
+   * return 1 if all constraints are ok
+   * return 0 if not constraints are voilated
+   * return -1 if a constraint is validated
+   */
+  function isMineDisturbutionOk() {
+    let constraintsCopy = constraints.map(function (arr) {
+      return arr.map(function (cell) {
+        return { value: cell.value, x: cell.x, y: cell.y };
+      });
+    });
+    for (let i = 0; i < island.length; i++) {
+      if (mines[i]) {
+        let cell = island[i];
+        let x = cell.x;
+        let y = cell.y;
+        for (let y2 = (y == 0) ? 0 : y - 1; y2 <= y + 1 && y2 < 16; y2++) {
+          for (let x2 = (x == 0) ? 0 : x - 1; x2 <= x + 1 && x2 < 31; x2++) {
+            if (constraintsCopy[y2][x2] != undefined) {
+              constraintsCopy[y2][x2].value--;
+              if (constraintsCopy[y2][x2].value < 0)
+                return -1;
+            }
+          }
+        }
+      }
+    }
+    for (let y = 0; y < 16; y++) {
+      for (let x = 0; x < 31; x++) {
+        if (constraintsCopy[y][x] != undefined && constraintsCopy[y][x].value > 0)
+          return 0;
+      }
+    }
+    return 1;
+  }
+  function isSolutionValid() {
+
+    for (let i = 0; i < island.length; i++) {
+      if (minesSolution[i] || notMinesSolution[i])
+        return true;
+    }
+    return false;
+  }
+  function allPossibleMoves(index, isMine) {
+    if (island[index] != undefined) {
+      mines[index] = isMine;
+      let okainess = isMineDisturbutionOk();
+      if (okainess == 0) {
+        allPossibleMoves(index + 1, true);
+        allPossibleMoves(index + 1, false);
+      } else if (okainess == 1) {
+        for (let i = 0; i < mines.length; i++) {
+          if (minesSolution[i] == undefined)
+            minesSolution[i] = mines[i];
+          else
+            minesSolution[i] &= mines[i];
+
+          if (notMinesSolution[i] == undefined)
+            notMinesSolution[i] = !mines[i];
+          else
+            notMinesSolution[i] &= !mines[i];
+        }
+        return;
+      }
+    }
+  }
+  allPossibleMoves(0, true);
+  allPossibleMoves(0, false);
+
+  let sureMines = [];
+  let sureNotMines = [];
+  for (let i = 0; i < island.length; i++) {
+    const cell = island[i];
+    if (minesSolution[i]) {
+      sureMines.push({ x: cell.x, y: cell.y });
+    }
+    if (notMinesSolution[i])
+      sureNotMines.push({ x: cell.x, y: cell.y });
+  }
+  return { sureMines: sureMines, sureNotMines: sureNotMines }
 }
