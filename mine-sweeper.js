@@ -30,7 +30,7 @@ const puppeteer = require('puppeteer');
   while (true) {
     // let allBoxes = [];
     let count = 0;
-    console.time('getting info');
+    // console.time('getting info');
 
     // let currentRow = [];
     // for (let j = 0; j < 31; j++) {
@@ -87,41 +87,52 @@ const puppeteer = require('puppeteer');
       await page.waitFor(500);
       continue mainloop;
     }
-    console.timeEnd('getting info');
+    // console.timeEnd('getting info');
 
-    console.time('solution');
+    // console.time('solution');
     let solution = solve(allBoxes);
 
-    console.timeEnd('solution');
+    // console.timeEnd('solution');
 
     let sureMines = solution.sureMines;
-    let notMines = solution.notMines;
+    let sureNotMines = solution.sureNotMines;
 
-    console.time('clicking');
+    // console.time('clicking');
 
-    if (notMines.length == 0 && sureMines.length == 0) {
-      await page.click('#' + getRandomLetter() + '10');
+    if (sureNotMines.length == 0 && sureMines.length == 0) {
+      console.log("luck");
+      let notMines = solution.notMines;
+      if (notMines.length > 0) {
+        let row = notMines[0].x + 1;
+        let col = getLetter(notMines[0].y);
+        await page.click('#' + col + row);
+        // console.log('#' + col + row + ' is clicked');
+      } else {
+        await page.click('#' + getRandomLetter() + '10');
+        await page.waitFor(500);
+      }
     } else {
       // console.log(" whoooooo found an asnwer");
       // console.log(mines);
-      if (notMines.length > 0) {
-        for (let i = 0; i < notMines.length; i++) {
-          const notMine = notMines[i];
+      if (sureNotMines.length > 0) {
+        for (let i = 0; i < sureNotMines.length; i++) {
+          const notMine = sureNotMines[i];
           let row = notMine.x + 1;
           let col = getLetter(notMine.y);
           await page.click('#' + col + row);
+          console.log('#' + col + row + ' is clicked')
         }
-        // console.log('#' + col + row + ' is clicked')
-      } else {
-        let row = sureMines[0].x + 1;
-        let col = getLetter(sureMines[0].y);
-        await page.click('#' + col + row, { button: "right" });
-        // console.log('#' + col + row + ' is clicked');
-
-
+      }
+      if (sureMines.length > 0) {
+        for (let i = 0; i < sureMines.length; i++) {
+          let row = sureMines[i].x + 1;
+          let col = getLetter(sureMines[i].y);
+          await page.click('#' + col + row, { button: "right" });
+          console.log('#' + col + row + ' is clicked');
+        }
       }
     }
-    console.timeEnd('clicking');
+    // console.timeEnd('clicking');
 
 
     await page.waitFor(50);
@@ -168,99 +179,7 @@ function getRandomLetter() {
   return letters[randomNumber];
 }
 
-function solve1(input) {
-  // var ySize = input.length;
-  // var xSize = input[0].length;
 
-  // let values = defineEmpty2dArray(ySize);
-  // let dividers = defineEmpty2dArray(ySize);
-
-  // for (let y = 0; y < ySize; y++) {
-  //   const element = input[y];
-  //   for (let x = 0; x < xSize; x++) {
-  //     let squareValue = element[x];
-  //     if (squareValue == 'f')
-  //       continue;
-  //     //does not count zeros or mines.
-  //     //if the loop encounters a mine the square value is --
-  //     let neighborsCount = 0;
-  //     for (let i = x - 1; i <= x + 1; i++) {
-  //       for (let j = y - 1; j <= y + 1; j++) {
-  //         if ((i == x && j == y) || (i < 0 || i >= xSize || j < 0 || j >= ySize))
-  //           continue;
-  //         if (input[j][i] == 'f') {
-  //           squareValue--;
-  //         } else if (input[j][i] == -1) {
-  //           neighborsCount++;
-  //         }
-  //       }
-  //     }
-
-  //     // if (squareValue <= 0)
-  //     //   continue;
-
-
-  //     for (let i = x - 1; i <= x + 1; i++) {
-  //       for (let j = y - 1; j <= y + 1; j++) {
-  //         if ((i == x && j == y) || (i < 0 || i >= xSize || j < 0 || j >= ySize))
-  //           continue;
-  //         if (input[j][i] >= 0 || input[j][i] == 'f') {
-  //           continue;
-  //         } else {
-  //           if (squareValue >= 0) {
-  //             if (values[j][i] == undefined) {
-  //               values[j][i] = 0;
-  //               dividers[j][i] = 1;
-  //             }
-  //             values[j][i] += squareValue;
-  //             dividers[j][i] += neighborsCount;
-  //           } else {
-  //             values[j][i] = -10;
-  //             dividers[j][i] = 1;
-  //           }
-  //         }
-  //       }
-  //     }
-
-  //   }
-  // }
-
-
-  // //initialize the percent array with input
-
-  // var percents = input.map(function (arr) {
-  //   return arr.map(function (value) {
-  //     if (value == -1)
-  //       return -1;
-  //     return 0;
-  //   });
-  // });
-
-  // for (let x = 0; x < xSize; x++) {
-  //   for (let y = 0; y < ySize; y++) {
-  //     if (dividers[y][x] != undefined && dividers[y][x] != 0)
-  //       percents[y][x] = values[y][x] / dividers[y][x];
-  //   }
-  // }
-  // let max = -90876986798765789;
-  // percents.forEach(row => {
-  //   row.forEach(cell => {
-  //     if (cell > max && cell != 0)
-  //       max = cell;
-  //   });
-  // });
-  // console.table(input);
-  // console.table(percents);
-  // let mines = [];
-  // for (let x = 0; x < xSize; x++) {
-  //   for (let y = 0; y < ySize; y++) {
-  //     if (percents[y][x] == max) {
-  //       mines[mines.length] = { x: x, y: y };
-  //     }
-  //   }
-  // }
-  // return mines;
-}
 
 function solve(input) {
 
@@ -298,15 +217,16 @@ function solve(input) {
     }
   }
 
-  let mines = [];
   let notMines = [];
+  let sureMines = [];
+  let sureNotMines = [];
 
   let percents = defineEmpty2dArray(input.length);
   knownCells.forEach(row => {
     row.forEach(cell => {
       cell.neighbors.forEach(neighbor => {
         if (cell.value == 0) {
-          notMines[notMines.length] = { y: neighbor.y, x: neighbor.x };
+          sureNotMines[sureNotMines.length] = { y: neighbor.y, x: neighbor.x };
           return;
         }
         if (percents[neighbor.y][neighbor.x] == undefined)
@@ -316,12 +236,12 @@ function solve(input) {
     });
   });
   // console.table(percents);
-  // let max = 0.000000000001;
-  let max = 0.5;
+  let min = 1;
+  // let max = 0.6;
   percents.forEach(row => {
     row.forEach(cell => {
-      if (cell > max && cell != 0)
-        max = cell;
+      if (cell < min && cell != 0)
+        min = cell;
     });
   });
   // console.table(percents);
@@ -333,14 +253,15 @@ function solve(input) {
   for (let x = 0; x < input[0].length; x++) {
     for (let y = 0; y < input.length; y++) {
       if (percents[y][x] == 0) {
+        sureNotMines[sureNotMines.length] = { x: x, y: y };
+      } else if (percents[y][x] == 1)
+        sureMines.push({ x: x, y: y });
+      else if (percents[y][x] == min) {
         notMines[notMines.length] = { x: x, y: y };
-      }
-      else if (percents[y][x] == max) {
-        mines[mines.length] = { x: x, y: y };
       }
     }
   }
-  return { sureMines: mines, notMines: notMines };
+  return { sureMines: sureMines, notMines: notMines, sureNotMines: sureNotMines };
 }
 
 function defineEmpty2dArray(ySize) {
