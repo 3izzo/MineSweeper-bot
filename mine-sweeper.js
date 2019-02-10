@@ -95,6 +95,7 @@ const puppeteer = require('puppeteer');
       return result;
     });
     if (allBoxes == null) {
+      await page.screenshot({path: `momentsOfFailure/${tryCount-wins}.png`})
       await page.click('#expert');
       console.clear();
       if (lastStep != "luck")
