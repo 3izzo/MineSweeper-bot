@@ -25,7 +25,9 @@ const puppeteer = require('puppeteer');
   // await page.click('#B3');
   await page.click('#C10');
 
-  let cycles = 0;
+  let tryCount = 0;
+  let wins = 0;
+  let lastStep = "";
   mainloop:
   while (true) {
     // let allBoxes = [];
@@ -42,7 +44,18 @@ const puppeteer = require('puppeteer');
     //   currentRow.push(getValue(currentCellClass));
     //   count++;
     // }
-
+    let won = await page.evaluate(function () {
+      return document.querySelector('.face-top-player').className;
+    });
+    if (won.includes("winner")) {
+      console.log("won");
+      wins++;
+      await page.click('#expert');
+      console.clear();
+      await page.waitFor(500);
+      console.log("wins " + wins + "tries " + ++tryCount);
+      continue;
+    }
     let allBoxes = await page.evaluate(function () {
       let result = [];
       let getValueFunc = function getValue(className) {
@@ -83,7 +96,11 @@ const puppeteer = require('puppeteer');
     });
     if (allBoxes == null) {
       await page.click('#expert');
-      console.log("clicked expert");
+      console.clear();
+      if (lastStep != "luck")
+        tryCount++;
+      console.log("wins " + wins + " tries " + tryCount);
+      console.log(lastStep);
       await page.waitFor(500);
       continue mainloop;
     }
@@ -96,11 +113,11 @@ const puppeteer = require('puppeteer');
 
     let sureMines = solution.sureMines;
     let sureNotMines = solution.sureNotMines;
-
+    lastStep = solution.lastStep;
     // console.time('clicking');
 
     if (sureNotMines.length == 0 && sureMines.length == 0) {
-      console.log("luck");
+      lastStep = "luck"
       let notMines = solution.notMines;
       if (notMines.length > 0) {
         let row = notMines[0].x + 1;
@@ -161,7 +178,7 @@ function getRandomLetter() {
 
 
 function solve(input) {
-
+  let step = "normal";
   let knownCells = getKnownCells(input);
 
   let notMines = [];
@@ -230,37 +247,50 @@ function solve(input) {
 
     for (let i = 0; i < islands.length; i++) {
 
-      let island = islands[i];
-      if (island.length > 24) {
-        let spliced = island.splice(24);
-        console.log(spliced)
-        islands.push(spliced);
-      }
       if (sureMines.length != 0 || sureNotMines.length != 0)
         break;
+
+      step = 'brute'
+      let isSpliced = false;
+      let island = islands[i];
+      if (island.length > 30) {
+        let spliced = island.splice(30);
+        console.log(spliced)
+        islands.push(spliced);
+        step += "spliced";
+        isSpliced = true;
+      }
       // console.log("brute forcing")
       let brutForceResult = BRUTEFOOOOORCE(island);
       // console.log("brute forcing done")
+      if (isSpliced) {
+        if (brutForceResult.sureNotMines[0] != undefined)
+          sureNotMines.push(brutForceResult.sureNotMines[0]);
+        else if (brutForceResult.sureMines[0] != undefined)
+          sureMines.push(brutForceResult.sureMines[0]);
 
-      brutForceResult.sureMines.forEach(sm => {
-        if (() => {
-          sureMines.forEach(sm2 => {
-            if (sm2.x == sm.x & sm2.y == sm.y)
-              return false;
-          });
-          return true;
-        })
-          sureMines.push(sm);
-      });
+      }
+      else {
+        brutForceResult.sureMines.forEach(sm => {
+          if (() => {
+            sureMines.forEach(sm2 => {
+              if (sm2.x == sm.x & sm2.y == sm.y)
+                return false;
+            });
+            return true;
+          })
+            sureMines.push(sm);
+        });
 
-      brutForceResult.sureNotMines.forEach(snm => {
-        sureNotMines.push(snm);
-      });
+        brutForceResult.sureNotMines.forEach(snm => {
+          sureNotMines.push(snm);
+        });
+      }
 
     }
   }
 
-  return { sureMines: sureMines, notMines: notMines, sureNotMines: sureNotMines };
+  return { sureMines: sureMines, notMines: notMines, sureNotMines: sureNotMines, lastStep: step };
 }
 
 function defineEmpty2dArray(ySize) {
